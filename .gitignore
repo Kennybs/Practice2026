@@ -9,3 +9,8 @@ venv/
 # Кэш Python
 __pycache__/
 *.pyc
+
+#Файлы с данными
+data/
+*.xlsx
+*.csv
