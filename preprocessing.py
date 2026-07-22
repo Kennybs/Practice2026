@@ -1,65 +1,89 @@
+# Реализованы два этапа проверки:
+# 1. Отбрасываются образцы, у которых максимум напряжения находится
+#    в последней точке измерения.
+# 2. После достижения максимального напряжения удаляется хвост кривой,
+#    если напряжение опускается ниже 99% от максимального.
+#
+# Такой подход позволяет сохранить максимальное количество корректных
+# образцов и убрать участок кривой после разрушения материала.
 import pandas as pd
 import numpy as np
 
 # Загружаем подготовленный датасет.
-# low_memory=False убирает предупреждения Pandas о смешанных типах данных.
 df = pd.read_csv("data/PreparedData.csv", sep=";", low_memory=False)
 
-# Удаляем пустой столбец, если он присутствует.
+# Удаляем пустой столбец, если он есть.
 df = df.drop(columns=["Unnamed: 9"], errors="ignore")
 
-# Убираем лишние пробелы из названий столбцов.
+# Убираем лишние пробелы.
 df.columns = df.columns.str.strip()
 
-# Отладочная информация (при необходимости можно раскомментировать).
-# print(df.columns)
-# print(df.head())
-# print(df.info())
+# Порог — 1% от максимального напряжения.
+THRESHOLD = 0.01
 
-# Список sample_id образцов, признанных некорректными.
 bad_samples = []
 
-# Обрабатываем каждый образец отдельно.
+# Список частей DataFrame, которые затем объединим.
+processed_samples = []
+
 for sample_id, sample in df.groupby("sample_id"):
 
-    # Переиндексируем строки внутри образца.
     sample = sample.reset_index(drop=True)
 
-    # Индекс (номер точки) максимального напряжения.
+    # -------------------------
+    # Первое условие
+    # -------------------------
+
     peak_index = sample["Напряжение"].idxmax()
 
-    # Деформация в момент максимального напряжения.
-    peak_strain = sample.loc[peak_index, "Деформация"]
-
-    # Деформация в последней точке испытания.
-    final_strain = sample.iloc[-1]["Деформация"]
-
-    # Индекс последней точки измерения.
-    last_index = len(sample) - 1
-
-    # Если максимум напряжения находится в последней точке,
-    # значит испытание завершилось до разрушения образца.
-    # Такой образец считаем некорректным.
-    if peak_index == last_index:
+    # Если максимум оказался в последней точке,
+    # образец считается некорректным.
+    if peak_index == len(sample) - 1:
         bad_samples.append(sample_id)
+        continue
 
-# Выводим список найденных некорректных образцов.
+    # -------------------------
+    # Второе условие
+    # -------------------------
+
+    peak_stress = sample.loc[peak_index, "Напряжение"]
+
+    # После пика рассматриваем только участок разрушения.
+    post_peak = sample.iloc[peak_index + 1:].copy()
+
+    # Ищем первую точку,
+    # где напряжение отклоняется от максимума больше чем на 1%.
+    cut_index = None
+
+    for idx, row in post_peak.iterrows():
+
+        relative_drop = (peak_stress - row["Напряжение"]) / peak_stress
+
+        if relative_drop > THRESHOLD:
+            cut_index = idx
+            break
+
+    # Если нашли такую точку —
+    # оставляем только часть кривой ДО нее.
+    if cut_index is not None:
+
+        sample = sample.iloc[:cut_index]
+
+    processed_samples.append(sample)
+
+# Собираем итоговый DataFrame.
+clean_df = pd.concat(processed_samples, ignore_index=True)
+
 print("\nПлохие образцы:")
 print(bad_samples)
 
 print(f"\nВсего плохих образцов: {len(bad_samples)}")
 
-# Удаляем из общего DataFrame все строки,
-# относящиеся к некорректным образцам.
-clean_df = df[~df["sample_id"].isin(bad_samples)]
-
-# Проверяем, сколько строк было удалено.
-print(f"До очистки: {len(df)} строк")
+print(f"\nДо очистки: {len(df)} строк")
 print(f"После очистки: {len(clean_df)} строк")
+print(f"Удалено строк: {len(df) - len(clean_df)}")
 
-# Контрольная проверка.
-# Должно вывести False, если плохие образцы полностью удалены.
 print(clean_df["sample_id"].isin(bad_samples).any())
 
-# После реализации второй проверки можно сохранить результат:
-clean_df.to_csv("data/CleanData.csv", sep=";", index=False)
+# Сохраняем результат.
+#clean_df.to_csv("data/CleanData.csv", sep=";", index=False)
