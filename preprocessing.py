@@ -86,4 +86,4 @@ print(f"Удалено строк: {len(df) - len(clean_df)}")
 print(clean_df["sample_id"].isin(bad_samples).any())
 
 # Сохраняем результат.
-#clean_df.to_csv("data/CleanData.csv", sep=";", index=False)
+clean_df.to_csv("data/CleanData.csv", sep=";", index=False)
