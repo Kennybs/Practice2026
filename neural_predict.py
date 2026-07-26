@@ -2,6 +2,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
 # ==========================================================
 # Загрузка обученной модели
@@ -9,9 +10,9 @@ import matplotlib.pyplot as plt
 
 print("Загрузка модели...")
 
-model = joblib.load("model.pkl")
-scaler_X = joblib.load("scaler_X.pkl")
-scaler_y = joblib.load("scaler_y.pkl")
+model = joblib.load("models/model.pkl")
+scaler_X = joblib.load("models/scaler_X.pkl")
+scaler_y = joblib.load("models/scaler_y.pkl")
 
 print("Модель успешно загружена.")
 
@@ -166,35 +167,29 @@ for sample_number in range(NUM_SAMPLES):
         label=f"Generated {sample_number+1}"
     )
 
-# ==========================================================
-# Сохраняем все образцы в один CSV
-# ==========================================================
+# Создаем папку output, если её нет
+os.makedirs("output", exist_ok=True)
 
-    result = pd.concat(all_samples, ignore_index=True)
+result = pd.concat(all_samples, ignore_index=True)
 
-    result.to_csv(
-        "generated_samples.csv",
-        sep=";",
-        index=False
-    )
+result.to_csv(
+    "output/generated_samples.csv",
+    sep=";",
+    index=False
+)
 
-# ==========================================================
-# Дополнительно сохраняем каждый образец
-# на отдельный лист Excel
-# ==========================================================
-
+# Также сохраняем каждый образец на отдельный лист Excel
 with pd.ExcelWriter(
-    "generated_samples.xlsx",
+    "output/generated_samples.xlsx",
     engine="openpyxl"
 ) as writer:
-
     for sample_number, sample_df in enumerate(all_samples, start=1):
-
         sample_df.to_excel(
             writer,
             sheet_name=f"Образец_{sample_number}",
             index=False
         )
+
 
 # ==========================================================
 # Информация о завершении работы

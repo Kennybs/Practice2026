@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import joblib
+import os
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
@@ -178,13 +179,15 @@ print(f"R²  : {r2:.6f}")
 
 print("\nСохранение модели...")
 
-joblib.dump(model, "model.pkl")
+# Создаем папку models, если её еще нет
+os.makedirs("models", exist_ok=True)
 
-joblib.dump(scaler_x, "scaler_x.pkl")
+# Сохраняем файлы в новую папку
+joblib.dump(model, "models/model.pkl")
+joblib.dump(scaler_x, "models/scaler_x.pkl")
+joblib.dump(scaler_y, "models/scaler_y.pkl")
 
-joblib.dump(scaler_y, "scaler_y.pkl")
-
-print("Модель сохранена.")
+print("Модель и скалеры сохранены в папку models/")
 
 
 # ==========================================================
