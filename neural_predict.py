@@ -167,23 +167,40 @@ for sample_number in range(NUM_SAMPLES):
     )
 
 # ==========================================================
-# Сохраняем все образцы
+# Сохраняем все образцы в один CSV
 # ==========================================================
 
-result = pd.concat(all_samples, ignore_index=True)
+    result = pd.concat(all_samples, ignore_index=True)
 
-result.to_csv(
+    result.to_csv(
+        "generated_samples.csv",
+        sep=";",
+        index=False
+    )
 
-    "generated_samples.csv",
+# ==========================================================
+# Дополнительно сохраняем каждый образец
+# на отдельный лист Excel
+# ==========================================================
 
-    sep=";",
+with pd.ExcelWriter(
+    "generated_samples.xlsx",
+    engine="openpyxl"
+) as writer:
 
-    index=False
+    for sample_number, sample_df in enumerate(all_samples, start=1):
 
-)
+        sample_df.to_excel(
+            writer,
+            sheet_name=f"Образец_{sample_number}",
+            index=False
+        )
+
+# ==========================================================
+# Информация о завершении работы
+# ==========================================================
 
 print()
-
 print("===================================")
 print("Генерация завершена.")
 print("===================================")
@@ -191,9 +208,9 @@ print()
 
 print(f"Сгенерировано образцов: {NUM_SAMPLES}")
 
-print("Файл сохранен:")
-
-print("generated_samples.csv")
+print("Сохранены файлы:")
+print(" - generated_samples.csv")
+print(" - generated_samples.xlsx")
 
 # ==========================================================
 # Визуализация
